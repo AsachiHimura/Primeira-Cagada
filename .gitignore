@@ -1,4 +1,3 @@
-cofrinho.db
-.env
+banco.db
 __pycache__/
-*.pyc
+.env
