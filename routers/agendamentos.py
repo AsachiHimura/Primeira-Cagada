@@ -1,13 +1,28 @@
 from fastapi import APIRouter, Depends, HTTPException
 import sqlite3
 from datetime import datetime
+from pydantic import BaseModel
 from database import obter_conexao
-import schemas
 
 router = APIRouter(prefix="/api/agendamentos", tags=["Agendamentos Clínicos"])
 
+class NovoAgendamento(BaseModel):
+    paciente_id: int
+    unidade_id: int
+    profissional_id: int
+    data_hora: str
+    especialidade: str
+    indicacao_clinica: str
+
+class RespostaAgendamento(BaseModel):
+    mensagem: str
+    agendamento_id: int
+    prioridade_score: int
+
+class AtualizarStatus(BaseModel):
+    status: str
+
 def calcular_idade(data_nascimento_str: str) -> int:
-    """Calcula a idade da paciente com base na data de nascimento (AAAA-MM-DD)."""
     try:
         data_nasci = datetime.strptime(data_nascimento_str, "%Y-%m-%d")
         hoje = datetime.now()
@@ -16,26 +31,20 @@ def calcular_idade(data_nascimento_str: str) -> int:
         return 0
 
 def calcular_prioridade_sus(indicacao: str, idade: int) -> int:
-    """
-    Regra de Negócio Avançada:
-    Cruza o diagnóstico do profissional com a idade da paciente.
-    """
     texto = indicacao.lower()
     score = 0
     
-    #  Pontuação por faixa etária de risco para Mamografia (Rastreamento do SUS)
     if 50 <= idade <= 69:
-        score += 30  # População-alvo prioritária para rastreamento
+        score += 30
     elif idade > 69:
         score += 15
     else:
-        score += 10  # Pacientes jovens têm score base menor, a menos que haja sintoma
+        score += 10
         
-    #  Gravidade baseada no diagnóstico/resposta do profissional
     if "nódulo" in texto or "nodulo" in texto:
         score += 40
     if "câncer" in texto or "cancer" in texto or "carcinoma" in texto:
-        score += 60  # Gravidade máxima imediata
+        score += 60
     if "suspeita" in texto:
         score += 20
     if "urgente" in texto or "urgência" in texto:
@@ -43,32 +52,31 @@ def calcular_prioridade_sus(indicacao: str, idade: int) -> int:
         
     return score
 
-@router.post("/agendar", response_model=schemas.RespostaAgendamento, status_code=201)
-def criar_agendamento(dados: schemas.NovoAgendamento, db: sqlite3.Connection = Depends(obter_conexao)):
+@router.post("/agendar", response_model=RespostaAgendamento, status_code=201)
+def criar_agendamento(dados: NovoAgendamento, db: sqlite3.Connection = Depends(obter_conexao)):
     cursor = db.cursor()
     
-    cursor.execute("SELECT id, data_nascimento FROM usuarios WHERE id = ? AND tipo = 'paciente'", (dados.paciente_id,))
+    cursor.execute("SELECT id, data_nascimento FROM usuarios WHERE id = ? AND LOWER(tipo) = 'paciente'", (dados.paciente_id,))
     paciente = cursor.fetchone()
     
     if not paciente:
         raise HTTPException(status_code=404, detail="Paciente não encontrado ou não é do tipo correto.")
     
     paciente_id_banco, data_nascimento_banco = paciente
-    
     idade_paciente = calcular_idade(data_nascimento_banco)
-    
     score_calculado = calcular_prioridade_sus(dados.indicacao_clinica, idade_paciente)
     
     try:
+        cursor.execute("UPDATE usuarios SET historico_medico = ? WHERE id = ?", (dados.indicacao_clinica, dados.paciente_id))
+        
         cursor.execute("""
             INSERT INTO agendamentos (
                 paciente_id, unidade_id, profissional_id, data_hora, 
-                status, prioridade, procedimento, indicacao_clinica
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                especialidade, status, prioridade
+            ) VALUES (?, ?, ?, ?, ?, 'fila_espera', ?)
         """, (
             dados.paciente_id, dados.unidade_id, dados.profissional_id, 
-            dados.data_hora.strftime("%Y-%m-%d %H:%M:%S") if hasattr(dados.data_hora, 'strftime') else dados.data_hora, 
-            dados.status, score_calculado, dados.procedimento, dados.indicacao_clinica
+            dados.data_hora, dados.especialidade, score_calculado
         ))
         db.commit()
         
@@ -79,3 +87,30 @@ def criar_agendamento(dados: schemas.NovoAgendamento, db: sqlite3.Connection = D
         }
     except sqlite3.Error as e:
         raise HTTPException(status_code=500, detail=f"Erro interno no banco de dados: {str(e)}")
+
+@router.get("/{agendamento_id}")
+def obter_agendamento(agendamento_id: int, db: sqlite3.Connection = Depends(obter_conexao)):
+    cursor = db.cursor()
+    cursor.execute("""
+        SELECT a.id, a.data_hora, a.especialidade, a.status, a.prioridade, u.nome AS nome_paciente
+        FROM agendamentos a
+        JOIN usuarios u ON a.paciente_id = u.id
+        WHERE a.id = ?
+    """, (agendamento_id,))
+    agendamento = cursor.fetchone()
+    
+    if not agendamento:
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
+    return dict(agendamento)
+
+@router.patch("/{agendamento_id}/status")
+def atualizar_status_agendamento(agendamento_id: int, dados: AtualizarStatus, db: sqlite3.Connection = Depends(obter_conexao)):
+    cursor = db.cursor()
+    cursor.execute("SELECT id FROM agendamentos WHERE id = ?", (agendamento_id,))
+    
+    if not cursor.fetchone():
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
+        
+    cursor.execute("UPDATE agendamentos SET status = ? WHERE id = ?", (dados.status, agendamento_id))
+    db.commit()
+    return {"mensagem": f"Status do agendamento atualizado para '{dados.status}'."}

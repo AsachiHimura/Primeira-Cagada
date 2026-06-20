@@ -1,6 +1,6 @@
 import sqlite3
 
-DATABASE_FILE = "banco.db"
+DATABASE_FILE = "cofrinho.db"
 
 def obter_conexao():
     conn = sqlite3.connect(DATABASE_FILE)
@@ -14,7 +14,6 @@ def inicializar_banco():
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
     
-    # Cadastro de Unidades
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS unidades (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,7 +23,6 @@ def inicializar_banco():
     )
     """)
     
-    # Cadastro dos Profissionais e Permissões
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS profissionais (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,27 +30,29 @@ def inicializar_banco():
         nome TEXT NOT NULL,
         cargo TEXT NOT NULL,
         permissao TEXT NOT NULL,
+        matricula TEXT UNIQUE,
+        senha TEXT,
         FOREIGN KEY (unidade_id) REFERENCES unidades (id)
     )
     """)
     
-    # Cadastro de Pacientes
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS usuarios (
+    CREATE TABLE IF NOT EXISTS pacientes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         unidade_id INTEGER,
         nome TEXT NOT NULL,
+        idade INTEGER,
         cpf TEXT UNIQUE NOT NULL,
         data_nascimento TEXT NOT NULL,
         telefone TEXT,
-        tipo TEXT NOT NULL,
         endereco TEXT,
+        cep TEXT,
         historico_medico TEXT,
         FOREIGN KEY (unidade_id) REFERENCES unidades (id)
     )
     """)
     
-    # Fila de Agendamentos
+    
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS agendamentos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,9 +60,12 @@ def inicializar_banco():
         unidade_id INTEGER,
         profissional_id INTEGER,
         data_hora TEXT NOT NULL,
+        especialidade TEXT NOT NULL,
+        procedimento TEXT,
+        indicacao_clinica TEXT,
+        prioridade_score INTEGER NOT NULL,
         status TEXT NOT NULL,
-        prioridade INTEGER NOT NULL,
-        FOREIGN KEY (paciente_id) REFERENCES usuarios (id),
+        FOREIGN KEY (paciente_id) REFERENCES pacientes (id),
         FOREIGN KEY (unidade_id) REFERENCES unidades (id),
         FOREIGN KEY (profissional_id) REFERENCES profissionais (id)
     )
