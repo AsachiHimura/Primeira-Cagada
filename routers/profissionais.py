@@ -55,6 +55,9 @@ def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db: sqlite3.Conne
 @router.post("/login")
 def login_profissional(dados: schemas.ProfissionalLogin, db: sqlite3.Connection = Depends(obter_conexao)):
     cursor = db.cursor()
+    # Garante que o cursor retorna linhas que aceitam acesso por nome de coluna
+    cursor.row_factory = sqlite3.Row 
+    
     senha_hash = gerar_hash_senha(dados.senha)
     
     cursor.execute("""
@@ -68,7 +71,11 @@ def login_profissional(dados: schemas.ProfissionalLogin, db: sqlite3.Connection 
     if not prof:
         raise HTTPException(status_code=401, detail="Matrícula ou senha incorretos.")
         
+    # Extrai o dado de forma limpa
+    permissao = prof['permissao'] 
+    
     return {
         "mensagem": "Login aprovado com sucesso", 
-        "profissional": dict(prof)
+        "profissional": dict(prof),
+        "permissao": permissao  # <--- ISSO É O QUE O REACT VAI USAR PARA MOSTRAR A ABA DO GESTOR
     }
