@@ -31,8 +31,8 @@ class ProfissionalCadastro(BaseModel):
     @classmethod
     def validar_cargo_saude(cls, v: str) -> str:
         cargo_limpo = v.strip().lower()
-        if cargo_limpo not in ['medico', 'médico', 'enfermeiro', 'enfermeira', 'gestor', 'recepcionista', 'rececionista']:
-            raise ValueError("O cargo deve ser 'medico', 'enfermeiro', 'gestor' ou 'rececionista'.")
+        if cargo_limpo not in ['medico', 'médico', 'enfermeiro', 'enfermeira', 'gestor', 'recepcionista']:
+            raise ValueError("O cargo deve ser 'medico', 'enfermeiro', 'gestor' ou 'recepcionista'.")
         return cargo_limpo
 
     @field_validator('permissao')
