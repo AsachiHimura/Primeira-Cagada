@@ -1,0 +1,6 @@
+banco.db
+.env
+__pycache__/
+.env
+cofrinho.db
+auth.py
