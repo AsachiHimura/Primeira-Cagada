@@ -65,14 +65,14 @@
   padding: 44px 40px 40px;
   border-radius: var(--raio-md);
   border-top: 4px solid var(--azul-acao);
-  box-shadow: 0 1px 3px rgba(15, 61, 92, 0.06), 0 16px 40px rgba(15, 61, 92, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 153, 255, 0.283), 0 16px 40px rgba(15, 61, 92, 0.12);
   width: 100%;
   max-width: 380px;
 }
 
 .card h2 {
   text-align: center;
-  color: var(--azul-profundo);
+  color: rgb(2, 2, 2, 2);
   margin: 0 0 4px;
   font-size: 22px;
   font-weight: 700;
@@ -82,7 +82,7 @@
 .card h2 + p,
 .subtitulo-login {
   text-align: center;
-  color: var(--tinta-suave);
+  color: rgb(2, 2, 2, 2);
   font-size: 13px;
   margin: 0 0 26px;
 }

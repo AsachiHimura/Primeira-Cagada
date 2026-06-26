@@ -110,8 +110,8 @@ function App() {
       {tela === 'login_unidade' && (
         <div className="containerCentral">
           <div className="card">
-            <h2>SIG-MAMO ✚</h2>
-            <p className="subtitulo-login">Sistema Integrado de Gestão — Mastologia</p>
+            <h2>SIG-MAMO</h2>
+            <p className="subtitulo-login">Sistema Integrado de Gestão — Mamografia</p>
             {erro && <p className="erro">{erro}</p>}
             <form onSubmit={handleLoginUnidade}>
               <input type="text" placeholder="CNES" value={cnes} onChange={(e) => setCnes(e.target.value)} required className="input" />

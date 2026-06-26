@@ -6,7 +6,7 @@ from routers import unidades, profissionais, pacientes, agendamentos, fila, assi
 
 app = FastAPI(
     title="PET-Saúde Fortaleza - Fila de Mamografia",
-    description="Uma baguncinha está sendo realizada na base de café, misoginia e falta de sossego",
+    description="Uma baguncinha está sendo realizada na base de café e falta de sossego",
     version="1.7.0"
 )
 
