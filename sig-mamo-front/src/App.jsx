@@ -1,76 +1,34 @@
 import React, { useState } from 'react';
-import api from './services/api';
+import api from './services/api'; 
 import './App.css';
-import PainelGestor from './PainelGestor';
+import PainelGestor from './PainelGestor'; 
+import PainelAdmin from './PainelAdmin'; // Importe seu novo painel admin
 
 function App() {
-  // Estados de navegação e controle
-  const [tela, setTela] = useState('login_unidade');
-  const [abaAtiva, setAbaAtiva] = useState('fila');
+  const [tela, setTela] = useState('login_profissional');
+  const [abaAtiva, setAbaAtiva] = useState('paciente');
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
-  
-  // Estado para o cargo do usuário (Gestor ou não) com persistência
   const [userRole, setUserRole] = useState(() => localStorage.getItem('userRole') || null);
 
-  // Estados dos formulários
-  const [nomeNovaUnidade, setNomeNovaUnidade] = useState('');
-  const [cnes, setCnes] = useState('');
-  const [senhaUnidade, setSenhaUnidade] = useState('');
   const [matricula, setMatricula] = useState('');
   const [senhaProfissional, setSenhaProfissional] = useState('');
-  const [identificadorRecuperacao, setIdentificadorRecuperacao] = useState('');
-
   const [unidadeLogada, setUnidadeLogada] = useState(null);
-  const [fila, setFila] = useState([]);
-
-  // Estados paciente
-  const [nomePaciente, setNomePaciente] = useState('');
-  const [idadePaciente, setIdadePaciente] = useState('');
-  const [cpfPaciente, setCpfPaciente] = useState('');
-  const [dataNascPaciente, setDataNascPaciente] = useState('');
-  const [telefonePaciente, setTelefonePaciente] = useState('');
-  const [enderecoPaciente, setEnderecoPaciente] = useState('');
-  const [cepPaciente, setCepPaciente] = useState('');
-  const [historicoPaciente, setHistoricoPaciente] = useState('');
-
-  // Funções de Ação
-  const handleCadastroUnidade = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await api.post('/api/unidades', { nome: nomeNovaUnidade });
-      setSucesso(`UNIDADE CRIADA! CNES: ${res.data.codigo_cnes}`);
-      setTela('login_unidade');
-    } catch (err) {
-      setErro('Erro ao criar unidade.');
-    }
-  };
-
-  const handleLoginUnidade = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await api.post('/api/unidades/login', { codigo_cnes: cnes, senha_login: senhaUnidade });
-      localStorage.setItem('token', res.data.access_token);
-      setUnidadeLogada(res.data);
-      setTela('login_profissional');
-    } catch (err) {
-      setErro('CNES ou senha da unidade incorretos.');
-    }
-  };
 
   const handleLoginProfissional = async (e) => {
     e.preventDefault();
     try {
       const res = await api.post('/api/profissionais/login', { matricula, senha: senhaProfissional });
-      
       if (res.data.access_token) localStorage.setItem('token', res.data.access_token);
       
-      // Salva permissão se existir
       if (res.data.profissional?.permissao) {
         localStorage.setItem('userRole', res.data.profissional.permissao);
         setUserRole(res.data.profissional.permissao);
       }
+      
+      setUnidadeLogada(res.data.unidade);
       setTela('painel');
+      setErro('');
     } catch (err) {
       setErro('Matrícula ou senha incorretas.');
     }
@@ -79,108 +37,68 @@ function App() {
   const handleLogout = () => {
     localStorage.clear();
     setUserRole(null);
-    setTela('login_unidade');
+    setTela('login_profissional');
     setMatricula('');
     setSenhaProfissional('');
   };
 
-  const handleCadastroPaciente = async (e) => {
-    e.preventDefault();
-    try {
-      await api.post('/api/pacientes', {
-        unidade_id: unidadeLogada.id,
-        nome: nomePaciente,
-        idade: parseInt(idadePaciente),
-        cpf: cpfPaciente,
-        data_nascimento: dataNascPaciente,
-        telefone: telefonePaciente,
-        endereco: enderecoPaciente,
-        cep: cepPaciente,
-        historico_medico: historicoPaciente
-      });
-      setSucesso('Paciente cadastrado!');
-    } catch (err) {
-      setErro('Erro ao cadastrar paciente.');
-    }
-  };
-
   return (
     <div className="app-container">
-      {/* TELA DE LOGIN UNIDADE */}
-      {tela === 'login_unidade' && (
-        <div className="containerCentral">
-          <div className="card">
-            <h2>SIG-MAMO</h2>
-            <p className="subtitulo-login">Sistema Integrado de Gestão — Mamografia</p>
-            {erro && <p className="erro">{erro}</p>}
-            <form onSubmit={handleLoginUnidade}>
-              <input type="text" placeholder="CNES" value={cnes} onChange={(e) => setCnes(e.target.value)} required className="input" />
-              <input type="password" placeholder="Senha" value={senhaUnidade} onChange={(e) => setSenhaUnidade(e.target.value)} required className="input" />
-              <button type="submit" className="botaoAcao">Acessar</button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* TELA DE LOGIN PROFISSIONAL */}
+      {/* TELA DE LOGIN ÚNICA */}
       {tela === 'login_profissional' && (
-        <div className="containerCentral">
-          <div className="card">
-            <h2>Acesso Profissional</h2>
+        <div className="login-split-container">
+          <div className="login-image-bg"></div>
+          <div className="login-sidebar">
+            <div className="login-logo"><span className="logo-icon">❀</span> SIG-MAMO</div>
             {erro && <p className="erro">{erro}</p>}
-            <form onSubmit={handleLoginProfissional}>
-              <input type="text" placeholder="Matrícula" value={matricula} onChange={(e) => setMatricula(e.target.value)} required className="input" />
-              <input type="password" placeholder="Senha" value={senhaProfissional} onChange={(e) => setSenhaProfissional(e.target.value)} required className="input" />
-              <button type="submit" className="botaoAcao">Entrar</button>
+            <form onSubmit={handleLoginProfissional} className="login-form">
+              <div className="input-group">
+                <label>Login Profissional</label>
+                <input type="text" placeholder="Digite sua matrícula" value={matricula} onChange={(e) => setMatricula(e.target.value)} required className="input-hap" />
+              </div>
+              <div className="input-group">
+                <label>Senha</label>
+                <input type="password" placeholder="Digite sua senha" value={senhaProfissional} onChange={(e) => setSenhaProfissional(e.target.value)} required className="input-hap" />
+              </div>
+              <button type="submit" className="btn-primary-hap">Acessar conta ➔</button>
             </form>
           </div>
         </div>
       )}
 
-      {/* TELA PAINEL - A versão segura */}
+      {/* TELA PAINEL */}
       {tela === 'painel' && (
         <div>
           <nav className="navbar">
             <div className="nav-menu">
               <span className="nav-logo">SIG-MAMO ✚</span>
-              <button onClick={() => setAbaAtiva('fila')}>Fila</button>
-              <button onClick={() => setAbaAtiva('paciente')}>Pacientes</button>
-              {userRole === 'gestor' && (
-                <button onClick={() => setAbaAtiva('profissionais')}>Gestão de Profissionais</button>
+              <button onClick={() => setAbaAtiva('paciente')} className={abaAtiva === 'paciente' ? 'abaAtiva' : 'abaInativa'}>Pacientes</button>
+              
+              {/* O Admin ou Gestor podem ver a gestão de profissionais */}
+              {(userRole === 'gestor' || userRole === 'admin') && (
+                <button onClick={() => setAbaAtiva('profissionais')} className={abaAtiva === 'profissionais' ? 'abaAtiva' : 'abaInativa'}>
+                  Gestão de Profissionais
+                </button>
               )}
             </div>
             <button onClick={handleLogout} className="botaoSair">Sair</button>
           </nav>
 
           <div className="main-content">
-            {/* SEGURANÇA NA FILA: Só faz .map se a fila existir */}
-            {abaAtiva === 'fila' && (
-              <div>
-                <h2>Fila de Espera</h2>
-                {Array.isArray(fila) && fila.length > 0 ? (
-                  fila.map((p, index) => (
-                    <div key={index} className="paciente-card">
-                      <h3>{p.paciente_nome || 'Sem nome'}</h3>
-                    </div>
-                  ))
-                ) : (
-                  <p>Fila vazia ou carregando...</p>
-                )}
+            {abaAtiva === 'paciente' && (
+              <div className="conteudoAba">
+                <h2>Pacientes</h2>
+                <p>Em breve: busca de paciente.</p>
               </div>
             )}
             
-            {abaAtiva === 'paciente' && (
-              <div>
-                <h2>Cadastro de Paciente</h2>
-                <form onSubmit={handleCadastroPaciente}>
-                  <input type="text" placeholder="Nome" value={nomePaciente} onChange={(e) => setNomePaciente(e.target.value)} />
-                  <button type="submit">Salvar</button>
-                </form>
-              </div>
-            )}
-
-            {abaAtiva === 'profissionais' && userRole === 'gestor' && (
-              <PainelGestor unidadeLogada={unidadeLogada} />
+            {/* Lógica de Painel baseada na role */}
+            {abaAtiva === 'profissionais' && (
+              userRole === 'admin' ? (
+                <PainelAdmin unidadeLogada={unidadeLogada} />
+              ) : (
+                <PainelGestor unidadeLogada={unidadeLogada} />
+              )
             )}
           </div>
         </div>

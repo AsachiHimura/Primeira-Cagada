@@ -1,6 +1,10 @@
-banco.db
 .env
 __pycache__/
 .env
-cofrinho.db
 auth.py
+config.py
+*.db
+*.pyc
+node_modules/
+dist/
+.vscode/

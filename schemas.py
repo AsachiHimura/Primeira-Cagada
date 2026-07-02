@@ -22,7 +22,7 @@ class UnidadeLogin(BaseModel):
 
 # --- PROFISSIONAIS (FUNCIONÁRIOS) ---
 class ProfissionalCadastro(BaseModel):
-    unidade_id: int
+    unidade_id: Optional[int] = None 
     nome: str
     cargo: str
     permissao: str
@@ -31,17 +31,18 @@ class ProfissionalCadastro(BaseModel):
     @classmethod
     def validar_cargo_saude(cls, v: str) -> str:
         cargo_limpo = v.strip().lower()
-        if cargo_limpo not in ['medico', 'médico', 'enfermeiro', 'enfermeira', 'gestor', 'recepcionista', 'rececionista']:
-            raise ValueError("O cargo deve ser 'medico', 'enfermeiro', 'gestor' ou 'rececionista'.")
+        # Adicionei 'ceo' e 'adm' nesta lista para garantir:
+        if cargo_limpo not in ['medico', 'médico', 'enfermeiro', 'enfermeira', 'gestor', 'recepcionista', 'rececionista', 'admin', 'ceo']:
+            raise ValueError("O cargo deve ser 'medico', 'enfermeiro', 'gestor', 'recepcionista', 'admin' ou 'ceo'.")
         return cargo_limpo
-
+    
     @field_validator('permissao')
     @classmethod
     def validar_permissao_sistema(cls, v: str) -> str:
         permissao_limpa = v.strip().lower()
         # Aqui estão os três níveis oficiais do sistema
-        if permissao_limpa not in ['recepcao', 'clinico', 'gestor']:
-            raise ValueError("A permissão tem de ser 'recepcao', 'clinico' ou 'gestor'.")
+        if permissao_limpa not in ['recepcao', 'clinico', 'gestor', 'admin']:
+            raise ValueError("Permissão inválida.")
         return permissao_limpa
     
 class ProfissionalCriado(BaseModel):
