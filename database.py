@@ -3,7 +3,7 @@ import sqlite3
 DATABASE_FILE = "cofrinho.db"
 
 def obter_conexao():
-    conn = sqlite3.connect(DATABASE_FILE)
+    conn = sqlite3.connect('cofrinho.db', check_same_thread=False)
     conn.row_factory = sqlite3.Row
     try:
         yield conn

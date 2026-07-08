@@ -36,6 +36,18 @@ def gerar_matricula(cursor) -> str:
 def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db: sqlite3.Connection = Depends(obter_conexao)):
     cursor = db.cursor()
     
+    if prof.permissao == "gestor" and not prof.unidade_id:
+        raise HTTPException(status_code=400, detail="Erro: É obrigatório vincular o gestor a uma unidade de saúde!")
+
+    cursor.execute("SELECT id FROM profissionais WHERE nome = ?", (prof.nome,))
+    if cursor.fetchone():
+        raise HTTPException(status_code=409, detail="Erro: Já existe um profissional cadastrado com este exato nome.")
+
+    if prof.permissao == "gestor" and prof.unidade_id:
+        cursor.execute("SELECT id FROM profissionais WHERE unidade_id = ? AND permissao = 'gestor'", (prof.unidade_id,))
+        if cursor.fetchone():
+            raise HTTPException(status_code=409, detail="Erro: Esta unidade já possui um gestor cadastrado.")
+
     if prof.unidade_id:
         cursor.execute("SELECT id FROM unidades WHERE id = ?", (prof.unidade_id,))
         if not cursor.fetchone():
@@ -56,8 +68,12 @@ def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db: sqlite3.Conne
             "nome": prof.nome,
             "matricula_gerada": matricula_gerada,
             "senha_gerada": senha_crua,
-            "mensagem": "CEO criado com sucesso."
+            "mensagem": "Profissional Criado Com Sucesso."
         }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Erro interno ao salvar no banco de dados.")
+        
     except sqlite3.Error as e:
         raise HTTPException(status_code=500, detail=str(e))
 
