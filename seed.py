@@ -20,13 +20,12 @@ CREATE TABLE IF NOT EXISTS profissionais (
     cargo TEXT,
     permissao TEXT,
     matricula TEXT UNIQUE,
-    senha TEXT,
-    senha_gerada TEXT
+    senha TEXT
 )
 """)
 conn.execute(
-    "INSERT OR IGNORE INTO profissionais (unidade_id, nome, cargo, permissao, matricula, senha, senha_gerada) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    (0, nome, "ceo", "admin", matricula, hash_senha, senha)
+    "INSERT OR IGNORE INTO profissionais (unidade_id, nome, cargo, permissao, matricula, senha) VALUES (?, ?, ?, ?, ?, ?)",
+    (0, nome, "ceo", "admin", matricula, hash_senha)
 )
 conn.commit()
 conn.close()
