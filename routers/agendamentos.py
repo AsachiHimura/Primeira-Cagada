@@ -56,7 +56,7 @@ def calcular_prioridade_sus(indicacao: str, idade: int) -> int:
 def criar_agendamento(dados: NovoAgendamento, db: sqlite3.Connection = Depends(obter_conexao)):
     cursor = db.cursor()
     
-    cursor.execute("SELECT id, data_nascimento FROM usuarios WHERE id = ? AND LOWER(tipo) = 'paciente'", (dados.paciente_id,))
+    cursor.execute("SELECT id, data_nascimento FROM usuarios WHERE id = %s AND LOWER(tipo) = 'paciente'", (dados.paciente_id,))
     paciente = cursor.fetchone()
     
     if not paciente:
@@ -67,13 +67,13 @@ def criar_agendamento(dados: NovoAgendamento, db: sqlite3.Connection = Depends(o
     score_calculado = calcular_prioridade_sus(dados.indicacao_clinica, idade_paciente)
     
     try:
-        cursor.execute("UPDATE usuarios SET historico_medico = ? WHERE id = ?", (dados.indicacao_clinica, dados.paciente_id))
+        cursor.execute("UPDATE usuarios SET historico_medico = %s WHERE id = %s", (dados.indicacao_clinica, dados.paciente_id))
         
         cursor.execute("""
             INSERT INTO agendamentos (
                 paciente_id, unidade_id, profissional_id, data_hora, 
                 especialidade, status, prioridade
-            ) VALUES (?, ?, ?, ?, ?, 'fila_espera', ?)
+            ) VALUES (%s, %s, %s, %s, %s, 'fila_espera', %s)
         """, (
             dados.paciente_id, dados.unidade_id, dados.profissional_id, 
             dados.data_hora, dados.especialidade, score_calculado
@@ -95,7 +95,7 @@ def obter_agendamento(agendamento_id: int, db: sqlite3.Connection = Depends(obte
         SELECT a.id, a.data_hora, a.especialidade, a.status, a.prioridade, u.nome AS nome_paciente
         FROM agendamentos a
         JOIN usuarios u ON a.paciente_id = u.id
-        WHERE a.id = ?
+        WHERE a.id = %s
     """, (agendamento_id,))
     agendamento = cursor.fetchone()
     
@@ -106,11 +106,11 @@ def obter_agendamento(agendamento_id: int, db: sqlite3.Connection = Depends(obte
 @router.patch("/{agendamento_id}/status")
 def atualizar_status_agendamento(agendamento_id: int, dados: AtualizarStatus, db: sqlite3.Connection = Depends(obter_conexao)):
     cursor = db.cursor()
-    cursor.execute("SELECT id FROM agendamentos WHERE id = ?", (agendamento_id,))
+    cursor.execute("SELECT id FROM agendamentos WHERE id = %s", (agendamento_id,))
     
     if not cursor.fetchone():
         raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
         
-    cursor.execute("UPDATE agendamentos SET status = ? WHERE id = ?", (dados.status, agendamento_id))
+    cursor.execute("UPDATE agendamentos SET status = %s WHERE id = %s", (dados.status, agendamento_id))
     db.commit()
     return {"mensagem": f"Status do agendamento atualizado para '{dados.status}'."}

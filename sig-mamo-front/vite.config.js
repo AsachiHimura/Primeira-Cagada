@@ -6,6 +6,6 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0', // Faz ele ouvir todas as conexões
-    allowedHosts: 'all', // Autoriza qualquer host (incluindo o do Ngrok)
+    allowedHosts: 'easel-borrowing-protract.ngrok-free.dev', // Autoriza qualquer host (incluindo o do Ngrok)
   }
 })

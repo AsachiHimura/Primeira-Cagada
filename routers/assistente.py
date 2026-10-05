@@ -12,7 +12,7 @@ class MensagemUsuario(BaseModel):
 
 def buscar_paciente_por_cpf(cpf: str, db: sqlite3.Connection):
     cursor = db.cursor()
-    cursor.execute("SELECT id, nome, idade, telefone, endereco, cep FROM pacientes WHERE cpf = ?", (cpf,))
+    cursor.execute("SELECT id, nome, idade, telefone, endereco, cep FROM pacientes WHERE cpf = %s", (cpf,))
     return cursor.fetchone()
 
 def verificar_cadastro_incompleto(paciente):
@@ -39,12 +39,12 @@ def verificar_cadastro_incompleto(paciente):
 
 def listar_consultas_paciente(paciente_id: int, db: sqlite3.Connection):
     cursor = db.cursor()
-    cursor.execute("SELECT id, data_hora, especialidade, status FROM agendamentos WHERE paciente_id = ?", (paciente_id,))
+    cursor.execute("SELECT id, data_hora, especialidade, status FROM agendamentos WHERE paciente_id = %s", (paciente_id,))
     return cursor.fetchall()
 
 def cancelar_agendamento(agendamento_id: int, db: sqlite3.Connection):
     cursor = db.cursor()
-    cursor.execute("UPDATE agendamentos SET status = 'Cancelado' WHERE id = ?", (agendamento_id,))
+    cursor.execute("UPDATE agendamentos SET status = 'Cancelado' WHERE id = %s", (agendamento_id,))
     db.commit()
     return cursor.rowcount > 0
 

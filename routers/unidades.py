@@ -15,7 +15,7 @@ def gerar_senha_aleatoria(tamanho=10):
 def gerar_cnes(cursor) -> str:
     while True:
         cnes = f"{random.randint(1000000, 9999999)}"
-        cursor.execute("SELECT id FROM unidades WHERE codigo_cnes = ?", (cnes,))
+        cursor.execute("SELECT id FROM unidades WHERE codigo_cnes = %s", (cnes,))
         if not cursor.fetchone():
             return cnes
 
@@ -33,7 +33,7 @@ def cadastrar_unidade(unidade: schemas.UnidadeCadastro, db: sqlite3.Connection =
     senha_crua = gerar_senha_aleatoria()
     senha_hash = gerar_hash_senha(senha_crua)
     try:
-        cursor.execute("INSERT INTO unidades (nome, codigo_cnes, senha_login) VALUES (?, ?, ?)",
+        cursor.execute("INSERT INTO unidades (nome, codigo_cnes, senha_login) VALUES (%s, %s, %s)",
                        (unidade.nome, cnes_gerado, senha_hash))
         db.commit()
         return {
@@ -47,7 +47,7 @@ def cadastrar_unidade(unidade: schemas.UnidadeCadastro, db: sqlite3.Connection =
 def login_unidade(login: schemas.UnidadeLogin, db: sqlite3.Connection = Depends(database.obter_conexao)):
     cursor = db.cursor()
     cursor.row_factory = sqlite3.Row
-    cursor.execute("SELECT id, nome, codigo_cnes, senha_login FROM unidades WHERE codigo_cnes = ?",
+    cursor.execute("SELECT id, nome, codigo_cnes, senha_login FROM unidades WHERE codigo_cnes = %s",
                    (login.codigo_cnes,))
     unidade = cursor.fetchone()
     if not unidade or not verificar_senha(login.senha_login, unidade['senha_login']):

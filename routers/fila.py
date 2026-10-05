@@ -16,9 +16,9 @@ def gerar_cpf_valido():
 @router.post("/{unidade_id}/popular")
 def popular_fila_falsa(unidade_id: int, db: sqlite3.Connection = Depends(obter_conexao)):
     cursor = db.cursor()
-    cursor.execute("SELECT id FROM unidades WHERE id = ?", (unidade_id,))
+    cursor.execute("SELECT id FROM unidades WHERE id = %s", (unidade_id,))
     if not cursor.fetchone():
-        cursor.execute("INSERT INTO unidades (id, nome, codigo_cnes, senha_login) VALUES (?, 'Posto Central', ?, '1234')", (unidade_id, f"CNES{unidade_id}"))
+        cursor.execute("INSERT INTO unidades (id, nome, codigo_cnes, senha_login) VALUES (%s, 'Posto Central', %s, '1234')", (unidade_id, f"CNES{unidade_id}"))
 
     nomes_femininos = ["Maria Silva", "Joana Costa", "Francisca Ferreira", "Antonia Souza", "Raimunda Oliveira", "Ana Gomes", "Rita Santos", "Catarina Rodrigues", "Teresa Martins"]
     historicos = ["Dor na mama direita.", "Nódulo palpável relatado.", "Histórico familiar de câncer.", "Acompanhamento semestral."]
@@ -36,7 +36,7 @@ def popular_fila_falsa(unidade_id: int, db: sqlite3.Connection = Depends(obter_c
         
         cursor.execute("""
             INSERT INTO pacientes (unidade_id, nome, idade, cpf, data_nascimento, telefone, endereco, cep, historico_medico) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (unidade_id, nome, idade, cpf, data_nasc, telefone, endereco, cep, historico))
         paciente_id = cursor.lastrowid
             
@@ -50,7 +50,7 @@ def popular_fila_falsa(unidade_id: int, db: sqlite3.Connection = Depends(obter_c
             
         cursor.execute("""
             INSERT INTO agendamentos (paciente_id, unidade_id, profissional_id, data_hora, especialidade, procedimento, indicacao_clinica, prioridade_score, status) 
-            VALUES (?, ?, 1, ?, 'Mastologia', 'Mamografia', ?, ?, 'Agendado')
+            VALUES (%s, %s, 1, %s, 'Mastologia', 'Mamografia', %s, %s, 'Agendado')
         """, (paciente_id, unidade_id, data_fake, historico, score))
         
     db.commit()
@@ -59,7 +59,7 @@ def popular_fila_falsa(unidade_id: int, db: sqlite3.Connection = Depends(obter_c
 @router.get("/{unidade_id}/fila-atual")
 def observacao_fila_atual(unidade_id: int, db: sqlite3.Connection = Depends(obter_conexao)):
     cursor = db.cursor()
-    cursor.execute("SELECT id FROM unidades WHERE id = ?", (unidade_id,))
+    cursor.execute("SELECT id FROM unidades WHERE id = %s", (unidade_id,))
     if not cursor.fetchone():
         raise HTTPException(status_code=404, detail="Unidade não encontrada.")
 
@@ -68,7 +68,7 @@ def observacao_fila_atual(unidade_id: int, db: sqlite3.Connection = Depends(obte
                p.id as paciente_id, p.nome AS paciente_nome, p.cpf, p.idade, p.telefone, p.endereco, p.cep
         FROM agendamentos a
         JOIN pacientes p ON a.paciente_id = p.id
-        WHERE a.unidade_id = ? AND a.status != 'Cancelado'
+        WHERE a.unidade_id = %s AND a.status != 'Cancelado'
         ORDER BY a.prioridade_score DESC, a.data_hora ASC
     """, (unidade_id,))
     

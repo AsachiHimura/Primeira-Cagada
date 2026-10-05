@@ -15,7 +15,7 @@ def gerar_senha_aleatoria(tamanho=8):
 def gerar_matricula(cursor) -> str:
     while True:
         matricula = str(random.randint(100000, 999999))
-        cursor.execute("SELECT id FROM profissionais WHERE matricula = ?", (matricula,))
+        cursor.execute("SELECT id FROM profissionais WHERE matricula = %s", (matricula,))
         if not cursor.fetchone():
             return matricula
 
@@ -28,7 +28,7 @@ def gerar_senha_aleatoria(tamanho=8):
 def gerar_matricula(cursor) -> str:
     while True:
         matricula = str(random.randint(100000, 999999))
-        cursor.execute("SELECT id FROM profissionais WHERE matricula = ?", (matricula,))
+        cursor.execute("SELECT id FROM profissionais WHERE matricula = %s", (matricula,))
         if not cursor.fetchone():
             return matricula
 
@@ -39,17 +39,17 @@ def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db: sqlite3.Conne
     if prof.permissao == "gestor" and not prof.unidade_id:
         raise HTTPException(status_code=400, detail="Erro: É obrigatório vincular o gestor a uma unidade de saúde!")
 
-    cursor.execute("SELECT id FROM profissionais WHERE nome = ?", (prof.nome,))
+    cursor.execute("SELECT id FROM profissionais WHERE nome = %s", (prof.nome,))
     if cursor.fetchone():
         raise HTTPException(status_code=409, detail="Erro: Já existe um profissional cadastrado com este exato nome.")
 
     if prof.permissao == "gestor" and prof.unidade_id:
-        cursor.execute("SELECT id FROM profissionais WHERE unidade_id = ? AND permissao = 'gestor'", (prof.unidade_id,))
+        cursor.execute("SELECT id FROM profissionais WHERE unidade_id = %s AND permissao = 'gestor'", (prof.unidade_id,))
         if cursor.fetchone():
             raise HTTPException(status_code=409, detail="Erro: Esta unidade já possui um gestor cadastrado.")
 
     if prof.unidade_id:
-        cursor.execute("SELECT id FROM unidades WHERE id = ?", (prof.unidade_id,))
+        cursor.execute("SELECT id FROM unidades WHERE id = %s", (prof.unidade_id,))
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Unidade não encontrada.")
     
@@ -59,7 +59,7 @@ def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db: sqlite3.Conne
     
     try:
         cursor.execute(
-            "INSERT INTO profissionais (unidade_id, nome, cargo, permissao, matricula, senha) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO profissionais (unidade_id, nome, cargo, permissao, matricula, senha) VALUES (%s, %s, %s, %s, %s, %s)",
             (prof.unidade_id, prof.nome, prof.cargo, prof.permissao, matricula_gerada, senha_hash)
         )
         db.commit()
@@ -81,11 +81,11 @@ def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db: sqlite3.Conne
 def login_profissional(dados: schemas.ProfissionalLogin, db: sqlite3.Connection = Depends(obter_conexao)):
     cursor = db.cursor()
     cursor.row_factory = sqlite3.Row
-    cursor.execute("SELECT * FROM profissionais WHERE matricula = ?", (dados.matricula,))
+    cursor.execute("SELECT * FROM profissionais WHERE matricula = %s", (dados.matricula,))
     prof = cursor.fetchone()
     if not prof or not verificar_senha(dados.senha, prof['senha']):
         raise HTTPException(status_code=401, detail="Matrícula ou senha incorretos.")
-    cursor.execute("SELECT * FROM unidades WHERE id = ?", (prof['unidade_id'],))
+    cursor.execute("SELECT * FROM unidades WHERE id = %s", (prof['unidade_id'],))
     unidade = cursor.fetchone()
     from auth import criar_token_acesso
     token = criar_token_acesso({
