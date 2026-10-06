@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException
-import sqlite3
 import random
 import string
 from auth import gerar_hash_senha, verificar_senha
@@ -19,21 +18,8 @@ def gerar_matricula(cursor) -> str:
         if not cursor.fetchone():
             return matricula
 
-router = APIRouter(prefix="/api/profissionais", tags=["Profissionais"])
-
-def gerar_senha_aleatoria(tamanho=8):
-    caracteres = string.ascii_letters + string.digits
-    return ''.join(random.choice(caracteres) for _ in range(tamanho))
-
-def gerar_matricula(cursor) -> str:
-    while True:
-        matricula = str(random.randint(100000, 999999))
-        cursor.execute("SELECT id FROM profissionais WHERE matricula = %s", (matricula,))
-        if not cursor.fetchone():
-            return matricula
-
 @router.post("/cadastro", response_model=schemas.ProfissionalCriado, status_code=201)
-def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db: sqlite3.Connection = Depends(obter_conexao)):
+def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db = Depends(obter_conexao)):
     cursor = db.cursor()
     
     if prof.permissao == "gestor" and not prof.unidade_id:
@@ -64,7 +50,7 @@ def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db: sqlite3.Conne
         )
         db.commit()
         return {
-            "id": cursor.lastrowid,
+            "id": getattr(cursor, "lastrowid", None),
             "nome": prof.nome,
             "matricula_gerada": matricula_gerada,
             "senha_gerada": senha_crua,
@@ -73,20 +59,44 @@ def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db: sqlite3.Conne
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Erro interno ao salvar no banco de dados.")
-        
-    except sqlite3.Error as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/login")
-def login_profissional(dados: schemas.ProfissionalLogin, db: sqlite3.Connection = Depends(obter_conexao)):
+def login_profissional(dados: schemas.ProfissionalLogin, db = Depends(obter_conexao)):
+    # Utiliza o cursor padrão para evitar incompatibilidades de classes no Python 3.14
     cursor = db.cursor()
-    cursor.row_factory = sqlite3.Row
-    cursor.execute("SELECT * FROM profissionais WHERE matricula = %s", (dados.matricula,))
-    prof = cursor.fetchone()
-    if not prof or not verificar_senha(dados.senha, prof['senha']):
+    
+    cursor.execute(
+        "SELECT id, unidade_id, nome, cargo, permissao, matricula, senha FROM profissionais WHERE matricula = %s", 
+        (dados.matricula,)
+    )
+    row = cursor.fetchone()
+    
+    if not row:
         raise HTTPException(status_code=401, detail="Matrícula ou senha incorretos.")
-    cursor.execute("SELECT * FROM unidades WHERE id = %s", (prof['unidade_id'],))
-    unidade = cursor.fetchone()
+        
+    prof = {
+        "id": row[0],
+        "unidade_id": row[1],
+        "nome": row[2],
+        "cargo": row[3],
+        "permissao": row[4],
+        "matricula": row[5],
+        "senha": row[6]
+    }
+    
+    if not verificar_senha(dados.senha, prof['senha']):
+        raise HTTPException(status_code=401, detail="Matrícula ou senha incorretos.")
+         
+    unidade = None
+    if prof['unidade_id']:
+        cursor.execute("SELECT id, nome FROM unidades WHERE id = %s", (prof['unidade_id'],))
+        u_row = cursor.fetchone()
+        if u_row:
+            unidade = {
+                "id": u_row[0],
+                "nome": u_row[1]
+            }
+    
     from auth import criar_token_acesso
     token = criar_token_acesso({
         "sub": prof['matricula'],
@@ -94,9 +104,10 @@ def login_profissional(dados: schemas.ProfissionalLogin, db: sqlite3.Connection 
         "profissional_id": prof['id'],
         "unidade_id": prof['unidade_id'],
     })
+    
     return {
         "mensagem": "Login aprovado",
         "access_token": token,
-        "profissional": dict(prof),
-        "unidade": dict(unidade) if unidade else None,
+        "profissional": prof,
+        "unidade": unidade
     }
