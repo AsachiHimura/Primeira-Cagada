@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import inicializar_banco
 
-# Importar diretamente cada router da pasta routersa
+# Importar diretamente cada router da pasta routersapython -m uvicorn main:app --reload
 from routers import (
     admin, 
     requisicoes, 
