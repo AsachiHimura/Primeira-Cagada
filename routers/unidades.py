@@ -24,12 +24,11 @@ def listar_unidades(db = Depends(obter_conexao)):
     cursor.execute("SELECT id, nome, codigo_cnes FROM unidades")
     rows = cursor.fetchall()
     
-    # Mapeia os dados do cursor padrão (tuplas) para dicionários
     return [
         {
-            "id": row[0],
-            "nome": row[1],
-            "codigo_cnes": row[2]
+            "id": row["id"],
+            "nome": row["nome"],
+            "codigo_cnes": row["codigo_cnes"]
         }
         for row in rows
     ]
