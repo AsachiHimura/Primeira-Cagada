@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException
-import sqlite3
 from datetime import datetime
 from pydantic import BaseModel
 from database import obter_conexao
@@ -53,7 +52,7 @@ def calcular_prioridade_sus(indicacao: str, idade: int) -> int:
     return score
 
 @router.post("/agendar", response_model=RespostaAgendamento, status_code=201)
-def criar_agendamento(dados: NovoAgendamento, db: sqlite3.Connection = Depends(obter_conexao)):
+def criar_agendamento(dados: NovoAgendamento, db = Depends(obter_conexao)):
     cursor = db.cursor()
     
     cursor.execute("SELECT id, data_nascimento FROM usuarios WHERE id = %s AND LOWER(tipo) = 'paciente'", (dados.paciente_id,))
@@ -73,23 +72,27 @@ def criar_agendamento(dados: NovoAgendamento, db: sqlite3.Connection = Depends(o
             INSERT INTO agendamentos (
                 paciente_id, unidade_id, profissional_id, data_hora, 
                 especialidade, status, prioridade
-            ) VALUES (%s, %s, %s, %s, %s, 'fila_espera', %s)
+            ) VALUES (%s, %s, %s, %s, %s, 'fila_espera', %s) RETURNING id
         """, (
             dados.paciente_id, dados.unidade_id, dados.profissional_id, 
             dados.data_hora, dados.especialidade, score_calculado
         ))
+        row = cursor.fetchone()
         db.commit()
+        
+        agendamento_id = row[0] if row else cursor.lastrowid
         
         return {
             "mensagem": "Procedimento médico alocado com sucesso seguindo os critérios de prioridade do SUS!",
-            "agendamento_id": cursor.lastrowid,
+            "agendamento_id": agendamento_id,
             "prioridade_score": score_calculado
         }
-    except sqlite3.Error as e:
+    except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro interno no banco de dados: {str(e)}")
 
 @router.get("/{agendamento_id}")
-def obter_agendamento(agendamento_id: int, db: sqlite3.Connection = Depends(obter_conexao)):
+def obter_agendamento(agendamento_id: int, db = Depends(obter_conexao)):
     cursor = db.cursor()
     cursor.execute("""
         SELECT a.id, a.data_hora, a.especialidade, a.status, a.prioridade, u.nome AS nome_paciente
@@ -101,10 +104,19 @@ def obter_agendamento(agendamento_id: int, db: sqlite3.Connection = Depends(obte
     
     if not agendamento:
         raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
-    return dict(agendamento)
+        
+    # Mapeamento manual da tupla para dicionário compatível com PostgreSQL
+    return {
+        "id": agendamento[0],
+        "data_hora": agendamento[1],
+        "especialidade": agendamento[2],
+        "status": agendamento[3],
+        "prioridade": agendamento[4],
+        "nome_paciente": agendamento[5]
+    }
 
 @router.patch("/{agendamento_id}/status")
-def atualizar_status_agendamento(agendamento_id: int, dados: AtualizarStatus, db: sqlite3.Connection = Depends(obter_conexao)):
+def atualizar_status_agendamento(agendamento_id: int, dados: AtualizarStatus, db = Depends(obter_conexao)):
     cursor = db.cursor()
     cursor.execute("SELECT id FROM agendamentos WHERE id = %s", (agendamento_id,))
     

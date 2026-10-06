@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException
-import sqlite3
 import random
 from datetime import datetime, timedelta
 from database import obter_conexao
@@ -14,11 +13,14 @@ def gerar_cpf_valido():
     return "".join(map(str, cpf))
 
 @router.post("/{unidade_id}/popular")
-def popular_fila_falsa(unidade_id: int, db: sqlite3.Connection = Depends(obter_conexao)):
+def popular_fila_falsa(unidade_id: int, db = Depends(obter_conexao)):
     cursor = db.cursor()
     cursor.execute("SELECT id FROM unidades WHERE id = %s", (unidade_id,))
     if not cursor.fetchone():
-        cursor.execute("INSERT INTO unidades (id, nome, codigo_cnes, senha_login) VALUES (%s, 'Posto Central', %s, '1234')", (unidade_id, f"CNES{unidade_id}"))
+        cursor.execute(
+            "INSERT INTO unidades (id, nome, codigo_cnes, senha_login) VALUES (%s, 'Posto Central', %s, '1234')", 
+            (unidade_id, f"CNES{unidade_id}")
+        )
 
     nomes_femininos = ["Maria Silva", "Joana Costa", "Francisca Ferreira", "Antonia Souza", "Raimunda Oliveira", "Ana Gomes", "Rita Santos", "Catarina Rodrigues", "Teresa Martins"]
     historicos = ["Dor na mama direita.", "Nódulo palpável relatado.", "Histórico familiar de câncer.", "Acompanhamento semestral."]
@@ -36,9 +38,10 @@ def popular_fila_falsa(unidade_id: int, db: sqlite3.Connection = Depends(obter_c
         
         cursor.execute("""
             INSERT INTO pacientes (unidade_id, nome, idade, cpf, data_nascimento, telefone, endereco, cep, historico_medico) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
         """, (unidade_id, nome, idade, cpf, data_nasc, telefone, endereco, cep, historico))
-        paciente_id = cursor.lastrowid
+        row_p = cursor.fetchone()
+        paciente_id = row_p[0] if row_p else cursor.lastrowid
             
         dias_frente = random.randint(1, 10)
         hora_fake = random.choice(["08:00", "09:30", "10:00", "13:30", "14:00"])
@@ -54,10 +57,10 @@ def popular_fila_falsa(unidade_id: int, db: sqlite3.Connection = Depends(obter_c
         """, (paciente_id, unidade_id, data_fake, historico, score))
         
     db.commit()
-    return {"mensagem": "Fila populada! Alguns pacientes foram criados sem dados de propósito para testares a verificação via JSON."}
+    return {"mensagem": "Fila populada com sucesso!"}
 
 @router.get("/{unidade_id}/fila-atual")
-def observacao_fila_atual(unidade_id: int, db: sqlite3.Connection = Depends(obter_conexao)):
+def observacao_fila_atual(unidade_id: int, db = Depends(obter_conexao)):
     cursor = db.cursor()
     cursor.execute("SELECT id FROM unidades WHERE id = %s", (unidade_id,))
     if not cursor.fetchone():
@@ -74,7 +77,20 @@ def observacao_fila_atual(unidade_id: int, db: sqlite3.Connection = Depends(obte
     
     fila = []
     for row in cursor.fetchall():
-        paciente = dict(row)
+        # Mapeamento manual da tupla para dicionário compatível com cursor padrão do PostgreSQL
+        paciente = {
+            "agendamento_id": row[0],
+            "data_hora": row[1],
+            "prioridade_score": row[2],
+            "status": row[3],
+            "paciente_id": row[4],
+            "paciente_nome": row[5],
+            "cpf": row[6],
+            "idade": row[7],
+            "telefone": row[8],
+            "endereco": row[9],
+            "cep": row[10]
+        }
         
         dados_faltantes = []
         if not paciente["telefone"] or str(paciente["telefone"]).lower() in ["string", "none", ""]: dados_faltantes.append("Telefone")

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, Depends
-import sqlite3
 import random
 import string
 from database import obter_conexao
@@ -19,37 +18,67 @@ def gerar_cnes(cursor) -> str:
         if not cursor.fetchone():
             return cnes
 
-@router.get("/listar", dependencies=[Depends(PermissaoRequerida(["admin"]))])
-def listar_unidades(db: sqlite3.Connection = Depends(obter_conexao)):
+@router.get("/", dependencies=[Depends(PermissaoRequerida(["admin"]))])
+def listar_unidades(db = Depends(obter_conexao)):
     cursor = db.cursor()
-    cursor.row_factory = sqlite3.Row
-    cursor.execute("SELECT * FROM unidades")
-    return [dict(u) for u in cursor.fetchall()]
+    cursor.execute("SELECT id, nome, codigo_cnes FROM unidades")
+    rows = cursor.fetchall()
+    
+    # Mapeia os dados do cursor padrão (tuplas) para dicionários
+    return [
+        {
+            "id": row[0],
+            "nome": row[1],
+            "codigo_cnes": row[2]
+        }
+        for row in rows
+    ]
 
 @router.post("/cadastro", response_model=schemas.UnidadeCriada, status_code=201, dependencies=[Depends(PermissaoRequerida(["admin"]))])
-def cadastrar_unidade(unidade: schemas.UnidadeCadastro, db: sqlite3.Connection = Depends(obter_conexao)):
+def cadastrar_unidade(unidade: schemas.UnidadeCadastro, db = Depends(obter_conexao)):
     cursor = db.cursor()
     cnes_gerado = gerar_cnes(cursor)
     senha_crua = gerar_senha_aleatoria()
     senha_hash = gerar_hash_senha(senha_crua)
     try:
-        cursor.execute("INSERT INTO unidades (nome, codigo_cnes, senha_login) VALUES (%s, %s, %s)",
-                       (unidade.nome, cnes_gerado, senha_hash))
+        cursor.execute(
+            "INSERT INTO unidades (nome, codigo_cnes, senha_login) VALUES (%s, %s, %s) RETURNING id",
+            (unidade.nome, cnes_gerado, senha_hash)
+        )
+        row = cursor.fetchone()
         db.commit()
+        
+        # Compatibilidade para obter o ID recém-inserido no PostgreSQL
+        unidade_id = row[0] if row else cursor.lastrowid
+        
         return {
-            "id": cursor.lastrowid, "nome": unidade.nome, "codigo_cnes": cnes_gerado,
-            "senha_gerada": senha_crua, "mensagem": "Unidade criada com sucesso."
+            "id": unidade_id, 
+            "nome": unidade.nome, 
+            "codigo_cnes": cnes_gerado,
+            "senha_gerada": senha_crua, 
+            "mensagem": "Unidade criada com sucesso."
         }
-    except sqlite3.Error as e:
+    except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
 @router.post("/login")
-def login_unidade(login: schemas.UnidadeLogin, db: sqlite3.Connection = Depends(database.obter_conexao)):
+def login_unidade(login: schemas.UnidadeLogin, db = Depends(database.obter_conexao)):
     cursor = db.cursor()
-    cursor.row_factory = sqlite3.Row
-    cursor.execute("SELECT id, nome, codigo_cnes, senha_login FROM unidades WHERE codigo_cnes = %s",
-                   (login.codigo_cnes,))
-    unidade = cursor.fetchone()
-    if not unidade or not verificar_senha(login.senha_login, unidade['senha_login']):
+    cursor.execute("SELECT id, nome, codigo_cnes, senha_login FROM unidades WHERE codigo_cnes = %s", (login.codigo_cnes,))
+    row = cursor.fetchone()
+    
+    if not row:
         raise HTTPException(status_code=401, detail="Código CNES ou senha incorretos.")
-    return {"mensagem": "Login efetuado com sucesso!", "unidade": dict(unidade)}
+        
+    unidade = {
+        "id": row[0],
+        "nome": row[1],
+        "codigo_cnes": row[2],
+        "senha_login": row[3]
+    }
+    
+    if not verificar_senha(login.senha_login, unidade['senha_login']):
+        raise HTTPException(status_code=401, detail="Código CNES ou senha incorretos.")
+        
+    return {"mensagem": "Login efetuado com sucesso!", "unidade": unidade}
