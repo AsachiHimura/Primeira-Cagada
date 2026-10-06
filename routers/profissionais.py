@@ -62,7 +62,6 @@ def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db = Depends(obte
 
 @router.post("/login")
 def login_profissional(dados: schemas.ProfissionalLogin, db = Depends(obter_conexao)):
-    # Utiliza o cursor padrão para evitar incompatibilidades de classes no Python 3.14
     cursor = db.cursor()
     
     cursor.execute(
@@ -71,6 +70,7 @@ def login_profissional(dados: schemas.ProfissionalLogin, db = Depends(obter_cone
     )
     row = cursor.fetchone()
     
+    # Validação crucial: se row for None, a matrícula não existe na BD
     if not row:
         raise HTTPException(status_code=401, detail="Matrícula ou senha incorretos.")
         
