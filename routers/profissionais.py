@@ -70,18 +70,18 @@ def login_profissional(dados: schemas.ProfissionalLogin, db = Depends(obter_cone
     )
     row = cursor.fetchone()
     
-    # Validação crucial: se row for None, a matrícula não existe na BD
     if not row:
         raise HTTPException(status_code=401, detail="Matrícula ou senha incorretos.")
         
+    # Acedemos aos dados pelas chaves do dicionário
     prof = {
-        "id": row[0],
-        "unidade_id": row[1],
-        "nome": row[2],
-        "cargo": row[3],
-        "permissao": row[4],
-        "matricula": row[5],
-        "senha": row[6]
+        "id": row["id"],
+        "unidade_id": row["unidade_id"],
+        "nome": row["nome"],
+        "cargo": row["cargo"],
+        "permissao": row["permissao"],
+        "matricula": row["matricula"],
+        "senha": row["senha"]
     }
     
     if not verificar_senha(dados.senha, prof['senha']):
@@ -93,8 +93,8 @@ def login_profissional(dados: schemas.ProfissionalLogin, db = Depends(obter_cone
         u_row = cursor.fetchone()
         if u_row:
             unidade = {
-                "id": u_row[0],
-                "nome": u_row[1]
+                "id": u_row["id"],
+                "nome": u_row["nome"]
             }
     
     from auth import criar_token_acesso
