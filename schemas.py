@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, field_validator
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 import re
 
 # --- UNIDADES (POSTOS DE SAÚDE) ---
@@ -102,3 +102,23 @@ class RespostaAgendamento(BaseModel):
     mensagem: str
     agendamento_id: int
     prioridade_score: int
+
+
+
+class RequisicaoMamografiaCadastro(BaseModel):
+    agendamento_id: int
+    paciente_id: int
+    profissional_id: int
+    nodulo_mama_direita: bool = False
+    nodulo_mama_esquerda: bool = False
+    risco_elevado: Optional[str] = None
+    mamas_examinadas: Optional[str] = None
+    fez_mamografia: Optional[str] = None
+    ano_ultima_mamografia: Optional[str] = None
+    fez_radioterapia: Optional[str] = None
+    ano_radioterapia_direita: Optional[str] = None
+    ano_radioterapia_esquerda: Optional[str] = None
+    fez_cirurgia: Optional[str] = None
+    cirurgias_mama_direita: Optional[str] = None
+    cirurgias_mama_esquerda: Optional[str] = None
+    indicacao_clinica: Optional[str] = None

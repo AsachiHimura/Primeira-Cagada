@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import inicializar_banco
 from routers import admin
 
+from routers import requisicoes
+
 
 from routers import unidades, profissionais, pacientes, agendamentos, fila, assistente, gestor
 
@@ -30,3 +32,4 @@ app.include_router(fila.router)
 app.include_router(assistente.router)
 app.include_router(gestor.router)
 app.include_router(admin.router)
+app.include_router(requisicoes.router)

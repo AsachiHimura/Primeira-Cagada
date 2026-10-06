@@ -69,6 +69,29 @@ def inicializar_banco():
         status TEXT NOT NULL
     );
     """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS requisicoes_mamografia (
+    id SERIAL PRIMARY KEY,
+    agendamento_id INTEGER REFERENCES agendamentos (id),
+    paciente_id INTEGER NOT NULL,
+    profissional_id INTEGER NOT NULL,
+    nodulo_mama_direita BOOLEAN DEFAULT FALSE,
+    nodulo_mama_esquerda BOOLEAN DEFAULT FALSE,
+    risco_elevado TEXT,
+    mamas_examinadas TEXT,
+    fez_mamografia TEXT,
+    ano_ultima_mamografia TEXT,
+    fez_radioterapia TEXT,
+    ano_radioterapia_direita TEXT,
+    ano_radioterapia_esquerda TEXT,
+    fez_cirurgia TEXT,
+    cirurgias_mama_direita TEXT,
+    cirurgias_mama_esquerda TEXT,
+    indicacao_clinica TEXT,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
     
     conn.commit()
     cursor.close()

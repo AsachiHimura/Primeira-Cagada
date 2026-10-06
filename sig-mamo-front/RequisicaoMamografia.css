@@ -1,0 +1,94 @@
+.requisicao-container {
+  background: #f4f6f9;
+  padding: 20px;
+  border-radius: 8px;
+  font-family: Arial, sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header-sus {
+  background: #194596;
+  color: white;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 4px 4px 0 0;
+}
+
+.acoes-topo button {
+  background: white;
+  color: #194596;
+  border: none;
+  padding: 6px 16px;
+  margin-left: 8px;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.abas {
+  display: flex;
+  background: #e2e8f0;
+  border-bottom: 2px solid #cbd5e1;
+}
+
+.aba {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-weight: bold;
+  color: #475569;
+}
+
+.aba.ativa {
+  background: #f4f6f9;
+  color: #194596;
+  border-top: 3px solid #194596;
+}
+
+.formulario-corpo {
+  background: white;
+  padding: 24px;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.pergunta-bloco {
+  margin-bottom: 20px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 15px;
+}
+
+.pergunta-titulo {
+  font-weight: bold;
+  color: #1e293b;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.opcoes-linha {
+  display: flex;
+  gap: 20px;
+}
+
+.opcoes-linha-com-input {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.opcoes-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
