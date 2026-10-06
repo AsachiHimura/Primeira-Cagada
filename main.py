@@ -2,8 +2,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import inicializar_banco
 
-# Importar todos os routers de uma só vez de forma limpa
-import routers
+# Importar diretamente cada router da pasta routersa
+from routers import (
+    admin, 
+    requisicoes, 
+    unidades, 
+    profissionais, 
+    pacientes, 
+    agendamentos, 
+    fila, 
+    assistente, 
+    gestor
+)
 
 app = FastAPI(
     title="PET-Saúde Fortaleza - Fila de Mamografia",
@@ -21,13 +31,13 @@ app.add_middleware(
 
 inicializar_banco()
 
-# Incluir todas as rotas
-app.include_router(routers.admin.router)
-app.include_router(routers.requisicoes.router)
-app.include_router(routers.unidades.router)
-app.include_router(routers.profissionais.router)
-app.include_router(routers.pacientes.router)
-app.include_router(routers.agendamentos.router)
-app.include_router(routers.fila.router)
-app.include_router(routers.assistente.router)
-app.include_router(routers.gestor.router)
+# Incluir as rotas usando diretamente o objeto importado
+app.include_router(admin.router)
+app.include_router(requisicoes.router)
+app.include_router(unidades.router)
+app.include_router(profissionais.router)
+app.include_router(pacientes.router)
+app.include_router(agendamentos.router)
+app.include_router(fila.router)
+app.include_router(assistente.router)
+app.include_router(gestor.router)
