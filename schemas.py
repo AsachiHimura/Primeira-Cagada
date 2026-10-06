@@ -1,7 +1,32 @@
+from abc import ABC, abstractmethod
 from pydantic import BaseModel, Field, field_validator
 from datetime import date
 from typing import Optional, List
-import re
+import re as regex_module
+
+
+class re(ABC):
+    """Utilitário regex reutilizável para limpar e validar dados com regras de domínio."""
+
+    @staticmethod
+    @abstractmethod
+    def limpar(value: str) -> str:
+        return regex_module.sub(r'\D', '', value or '')
+
+    @staticmethod
+    @abstractmethod
+    def validar(value: str) -> bool:
+        cpf = re.limpar(value)
+        if len(cpf) != 11 or cpf == cpf[0] * 11:
+            return False
+
+        for i in range(9, 11):
+            soma = sum(int(cpf[num]) * ((i + 1) - num) for num in range(i))
+            digito = ((soma * 10) % 11) % 10
+            if digito != int(cpf[i]):
+                return False
+        return True
+
 
 # --- UNIDADES (POSTOS DE SAÚDE) ---
 class UnidadeCadastro(BaseModel):
@@ -72,16 +97,13 @@ class PacienteCadastro(BaseModel):
     @field_validator('cpf')
     @classmethod
     def validar_cpf_receita(cls, v: str) -> str:
-        cpf_limpo = re.sub(r'\D', '', v)
+        cpf_limpo = re.limpar(v)
         if len(cpf_limpo) != 11:
             raise ValueError('O CPF precisa de conter exatamente 11 dígitos numéricos.')
         if cpf_limpo == cpf_limpo[0] * 11:
             raise ValueError('CPF inválido (Todos os dígitos são repetidos).')
-        for i in range(9, 11):
-            soma = sum(int(cpf_limpo[num]) * ((i + 1) - num) for num in range(i))
-            digito = ((soma * 10) % 11) % 10
-            if digito != int(cpf_limpo[i]):
-                raise ValueError('CPF inválido. Verifique os dígitos inseridos.')
+        if not re.validar(cpf_limpo):
+            raise ValueError('CPF inválido. Verifique os dígitos inseridos.')
         return cpf_limpo
 
 class PacienteUpdate(BaseModel):
