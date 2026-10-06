@@ -18,7 +18,7 @@ def gerar_cnes(cursor) -> str:
         if not cursor.fetchone():
             return cnes
 
-@router.get("/", dependencies=[Depends(PermissaoRequerida(["admin"]))])
+@router.get("/listar", dependencies=[Depends(PermissaoRequerida(["admin"]))])
 def listar_unidades(db = Depends(obter_conexao)):
     cursor = db.cursor()
     cursor.execute("SELECT id, nome, codigo_cnes FROM unidades")
