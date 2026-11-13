@@ -1,10 +1,12 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import inicializar_banco
+from config import settings
+from auth import router as auth_router
 
 # Importar diretamente cada router da pasta routersapython -m uvicorn main:app --reload
 from routers import (
-    admin, 
     requisicoes, 
     unidades, 
     profissionais, 
@@ -15,24 +17,28 @@ from routers import (
     gestor
 )
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    inicializar_banco()
+    yield
+
 app = FastAPI(
     title="PET-Saúde Fortaleza - Fila de Mamografia",
     description="Uma baguncinha está sendo realizada na base de café e falta de sossego",
-    version="1.7.0"
+    version="1.7.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[origem.strip() for origem in settings.CORS_ORIGINS.split(",") if origem.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-inicializar_banco()
-
 # Incluir as rotas usando diretamente o objeto importado
-app.include_router(admin.router)
+app.include_router(auth_router)
 app.include_router(requisicoes.router)
 app.include_router(unidades.router)
 app.include_router(profissionais.router)

@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-import sqlite3
 import database
 from config import settings
 
@@ -28,18 +27,17 @@ def criar_token_acesso(dados: dict, tempo_expiracao_minutos: int = 120) -> str:
 
 def obter_usuario_logado(
     credentials: HTTPAuthorizationCredentials = Depends(security_bearer),
-    db: sqlite3.Connection = Depends(database.obter_conexao)
 ) -> dict:
     token = credentials.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except jwt.InvalidSignatureError:
-        raise HTTPException(status_code=401, detail="Assinatura inválida")
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expirado")
-    except jwt.DecodeError:
-        raise HTTPException(status_code=401, detail="Token corrompido")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token inválido ou expirado")
+
+def validar_acesso_unidade(usuario: dict, unidade_id: int) -> None:
+    if usuario.get("role") != "admin" and usuario.get("unidade_id") != unidade_id:
+        raise HTTPException(status_code=403, detail="Unidade fora do seu acesso.")
 
 class PermissaoRequerida:
     def __init__(self, roles_permitidos: list):
@@ -54,14 +52,14 @@ class RecuperarSenhaRequest(BaseModel):
     identificador: str
 
 @router.post("/api/recuperar-senha")
-def recuperar_senha(dados: RecuperarSenhaRequest, db: sqlite3.Connection = Depends(database.obter_conexao)):
+def recuperar_senha(dados: RecuperarSenhaRequest, db=Depends(database.obter_conexao)):
     cursor = db.cursor()
-    cursor.execute("SELECT senha_login FROM unidades WHERE codigo_cnes = ?", (dados.identificador,))
+    cursor.execute("SELECT id FROM unidades WHERE codigo_cnes = %s", (dados.identificador,))
     unidade = cursor.fetchone()
     if unidade:
-        return {"mensagem": f"A senha da Unidade é: {unidade[0]}"}
-    cursor.execute("SELECT senha_gerada FROM profissionais WHERE matricula = ?", (dados.identificador,))
+        return {"mensagem": "Para redefinir a senha da unidade, entre em contato com o administrador."}
+    cursor.execute("SELECT id FROM profissionais WHERE matricula = %s", (dados.identificador,))
     prof = cursor.fetchone()
     if prof:
-        return {"mensagem": f"A senha do Profissional é: {prof[0]}"}
-    raise HTTPException(status_code=404, detail="CNES ou Matrícula não encontrados.")
+        return {"mensagem": "Para redefinir a senha, entre em contato com o administrador."}
+    return {"mensagem": "Se o identificador existir, entre em contato com o administrador para redefinir a senha."}

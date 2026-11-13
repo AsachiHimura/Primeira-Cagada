@@ -1,12 +1,8 @@
-import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from config import settings
 
-# Substitua pela sua senha real do Supabase
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres.nyjmbuaoycghspnypaeh:r3ereqMZ4HzPh8yE@aws-0-sa-east-1.pooler.supabase.com:6543/postgres"
-)
+DATABASE_URL = settings.DATABASE_URL
 
 def obter_conexao():
     conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
@@ -92,6 +88,8 @@ def inicializar_banco():
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
+
+    cursor.execute("ALTER TABLE requisicoes_mamografia ADD COLUMN IF NOT EXISTS subcategoria_rastreamento TEXT")
     
     conn.commit()
     cursor.close()

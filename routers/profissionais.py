@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
-import random
+import secrets
 import string
-from auth import gerar_hash_senha, verificar_senha
+from auth import gerar_hash_senha, verificar_senha, criar_token_acesso, PermissaoRequerida
 from database import obter_conexao
 import schemas
 
@@ -9,18 +9,27 @@ router = APIRouter(prefix="/api/profissionais", tags=["Profissionais"])
 
 def gerar_senha_aleatoria(tamanho=8):
     caracteres = string.ascii_letters + string.digits
-    return ''.join(random.choice(caracteres) for _ in range(tamanho))
+    return ''.join(secrets.choice(caracteres) for _ in range(tamanho))
 
 def gerar_matricula(cursor) -> str:
     while True:
-        matricula = str(random.randint(100000, 999999))
+        matricula = str(secrets.randbelow(900000) + 100000)
         cursor.execute("SELECT id FROM profissionais WHERE matricula = %s", (matricula,))
         if not cursor.fetchone():
             return matricula
 
 @router.post("/cadastro", response_model=schemas.ProfissionalCriado, status_code=201)
-def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db = Depends(obter_conexao)):
+def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db = Depends(obter_conexao), usuario = Depends(PermissaoRequerida(["admin", "gestor"]))):
     cursor = db.cursor()
+
+    if usuario.get("role") == "gestor":
+        if not usuario.get("unidade_id"):
+            raise HTTPException(status_code=403, detail="Gestor sem unidade vinculada.")
+        if prof.permissao not in ("clinico", "recepcao"):
+            raise HTTPException(status_code=403, detail="Gestores só podem cadastrar profissionais clínicos ou de recepção.")
+        prof.unidade_id = usuario.get("unidade_id")
+    if prof.permissao == "admin" and usuario.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Somente um administrador pode criar outro administrador.")
     
     if prof.permissao == "gestor" and not prof.unidade_id:
         raise HTTPException(status_code=400, detail="Erro: É obrigatório vincular o gestor a uma unidade de saúde!")
@@ -50,7 +59,6 @@ def cadastrar_profissional(prof: schemas.ProfissionalCadastro, db = Depends(obte
         )
         db.commit()
         return {
-            "id": getattr(cursor, "lastrowid", None),
             "nome": prof.nome,
             "matricula_gerada": matricula_gerada,
             "senha_gerada": senha_crua,
@@ -80,11 +88,10 @@ def login_profissional(dados: schemas.ProfissionalLogin, db = Depends(obter_cone
         "nome": row["nome"],
         "cargo": row["cargo"],
         "permissao": row["permissao"],
-        "matricula": row["matricula"],
-        "senha": row["senha"]
+        "matricula": row["matricula"]
     }
     
-    if not verificar_senha(dados.senha, prof['senha']):
+    if not verificar_senha(dados.senha, row["senha"]):
         raise HTTPException(status_code=401, detail="Matrícula ou senha incorretos.")
          
     unidade = None
@@ -97,7 +104,6 @@ def login_profissional(dados: schemas.ProfissionalLogin, db = Depends(obter_cone
                 "nome": u_row["nome"]
             }
     
-    from auth import criar_token_acesso
     token = criar_token_acesso({
         "sub": prof['matricula'],
         "role": prof['permissao'],

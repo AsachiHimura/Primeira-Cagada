@@ -35,7 +35,8 @@ html, body, #root { margin: 0; padding: 0; width: 100%; min-height: 100vh; backg
 .login-image-bg { flex: 1; background-image: url('/familia-feliz.jpg'); background-size: cover; background-position: center; }
 .login-sidebar { width: 420px; background-color: #fff; padding: 40px; display: flex; flex-direction: column; box-shadow: -4px 0 15px rgba(0,0,0,0.05); z-index: 2; overflow-y: auto; }
 .login-logo { font-size: 24px; font-weight: 800; color: var(--azul-acao); margin-bottom: 24px; display: flex; align-items: center; gap: 8px; }
-.logo-icon { color: #f47920; }
+.brand-logo-img { display: block; object-fit: contain; flex-shrink: 0; }
+.login-logo-img { width: 56px; height: 40px; }
 .login-form { display: flex; flex-direction: column; gap: 16px; }
 .input-group { display: flex; flex-direction: column; gap: 4px; }
 .input-group label { font-size: 14px; font-weight: 600; color: var(--azul-acao); }
@@ -56,7 +57,7 @@ html, body, #root { margin: 0; padding: 0; width: 100%; min-height: 100vh; backg
 .sidebar { width: var(--sidebar-largura); min-height: 100vh; background-color: var(--branco); border-right: 1px solid var(--linha); display: flex; flex-direction: column; transition: width 0.2s ease; flex-shrink: 0; position: relative; }
 .sidebar.recolhida { width: var(--sidebar-largura-recolhida); }
 .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 20px 16px 16px; border-bottom: 1px solid var(--linha); }
-.sidebar-logo .logo-icon { font-size: 22px; }
+.sidebar-logo-img { width: 48px; height: 32px; }
 .sidebar-logo-texto { font-size: 16px; font-weight: 800; color: var(--azul-acao); white-space: nowrap; overflow: hidden; }
 .sidebar-nav { display: flex; flex-direction: column; gap: 2px; padding: 12px 8px; flex: 1; }
 .sidebar-item { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border: none; background: transparent; border-radius: 10px; cursor: pointer; color: var(--tinta-suave); font-size: 14px; font-weight: 500; text-align: left; transition: background 0.15s, color 0.15s; white-space: nowrap; overflow: hidden; }
@@ -87,7 +88,6 @@ html, body, #root { margin: 0; padding: 0; width: 100%; min-height: 100vh; backg
 /* ============================================
    PÁGINA INÍCIO
    ============================================ */
-/*.pagina-inicio { } */
 .pagina-subtitulo { font-size: 13px; font-weight: 700; color: var(--tinta-suave); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 16px; }
 .grid-inicio { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
 .card-inicio { background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio-md); padding: 24px 18px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; cursor: pointer; box-shadow: var(--sombra-card); transition: border-color 0.15s, transform 0.1s; text-align: left; }
@@ -98,7 +98,6 @@ html, body, #root { margin: 0; padding: 0; width: 100%; min-height: 100vh; backg
 /* ============================================
    PÁGINA SERVIÇOS
    ============================================ */
-/*.pagina-servicos { }*/
 .barra-busca-wrap { display: flex; align-items: center; gap: 10px; background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio-pill); padding: 10px 18px; margin-bottom: 28px; box-shadow: var(--sombra-card); }
 .barra-busca-icone { font-size: 16px; color: var(--tinta-suave); }
 .barra-busca { border: none; outline: none; font-size: 14px; flex: 1; color: var(--tinta); background: transparent; font-family: var(--fonte-base); }
@@ -137,7 +136,7 @@ html, body, #root { margin: 0; padding: 0; width: 100%; min-height: 100vh; backg
 .perfil-valor { font-size: 13px; color: var(--tinta); font-weight: 500; }
 
 /* ============================================
-   PAINEL ADMINISTRATIVO (mantido)
+   PAINEL ADMINISTRATIVO E MODAL DE AGENDAMENTO
    ============================================ */
 .painel-admin-wrapper { padding: 4px; }
 .lista-unidades-painel { background-color: var(--branco); border-radius: var(--raio-md); padding: 20px 22px; margin-bottom: 28px; box-shadow: var(--sombra-card); border: 1px solid var(--linha); }
@@ -158,7 +157,6 @@ html, body, #root { margin: 0; padding: 0; width: 100%; min-height: 100vh; backg
 .modal-body { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
 .campo-admin { display: flex; flex-direction: column; gap: 5px; }
 .campo-admin label { font-size: 13px; font-weight: 600; color: var(--azul-acao); }
-.resultado-json { background-color: var(--azul-profundo); color: #cfe3f2; padding: 14px; border-radius: var(--raio-sm); font-size: 12px; overflow-x: auto; white-space: pre-wrap; max-height: 260px; }
 .resposta-bot-caixa { background-color: #eef4ff; border: 1px solid #c7d7f5; border-radius: var(--raio-sm); padding: 14px 16px; color: var(--azul-profundo); font-size: 14px; white-space: pre-wrap; line-height: 1.5; align-self: flex-start; max-width: 80%; }
 .bolha-usuario-admin { align-self: flex-end; background: var(--azul-acao); color: var(--branco); padding: 10px 14px; border-radius: var(--raio-sm); max-width: 80%; }
 .fila-container-admin { display: flex; flex-direction: column; gap: 10px; }
@@ -166,3 +164,37 @@ html, body, #root { margin: 0; padding: 0; width: 100%; min-height: 100vh; backg
 .paciente-card-admin.incompleto { background-color: var(--vermelho-alerta-bg); border-color: #f0c4c1; }
 .texto-pendencias-admin { font-size: 12px; color: var(--tinta-suave); margin: 4px 0; }
 .texto-alerta-admin { color: var(--vermelho-alerta); font-weight: 600; font-size: 13px; }
+.fila-tabela-container { margin-top: 12px; padding: 16px; background: var(--branco); border: 1px solid var(--linha); border-radius: var(--raio-sm); }
+.fila-tabela-titulo { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; color: var(--azul-profundo); }
+.fila-tabela-titulo h3 { margin: 0; font-size: 15px; }
+.fila-tabela-titulo span { color: var(--tinta-suave); font-size: 12px; }
+.fila-tabela-scroll { overflow-x: auto; }
+.tabela-fila { min-width: 720px; }
+.tabela-fila tbody tr:hover { background: #f5f8ff; }
+.fila-status { display: inline-block; padding: 3px 8px; border-radius: 999px; background: #eef3ff; color: var(--azul-acao); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.modal-conteudo.fila-modal { width: 1100px; }
+.fila-filtros { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.fila-filtros input { flex: 1; min-width: 180px; margin-bottom: 0; }
+.fila-filtros select { width: auto; min-width: 190px; margin-bottom: 0; }
+.fila-paginacao { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 12px; color: var(--tinta-suave); font-size: 12px; }
+.btn-fila-pagina { border: 1px solid var(--linha); border-radius: 6px; background: var(--branco); color: var(--azul-acao); padding: 6px 10px; cursor: pointer; }
+.btn-fila-pagina:disabled { opacity: .45; cursor: default; }
+
+/* ============================================
+   ESTILOS ESPECÍFICOS - ANAMNESE E TRIAGEM MAMO
+   ============================================ */
+.campo-admin select.input-hap {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b6b76' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 36px;
+}
+
+.campo-admin input[type="checkbox"] {
+  accent-color: var(--azul-acao);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}

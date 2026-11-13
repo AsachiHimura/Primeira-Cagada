@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import api from './services/api';
 import './App.css';
 import PainelGestor from './PainelGestor';
@@ -14,25 +14,24 @@ const ICONES = {
 
 const ITENS_INICIO_ADMIN = [
   { id: 'cadastrar-unidade', label: 'Cadastrar Unidade', icone: '🏥' },
-  { id: 'login-unidade', label: 'Login de Unidade', icone: '🔑' },
   { id: 'cadastrar-profissional', label: 'Cadastrar Profissional', icone: '🩺' },
   { id: 'cadastrar-paciente', label: 'Cadastrar Paciente', icone: '🧾' },
   { id: 'atualizar-paciente', label: 'Atualizar Paciente', icone: '✏️' },
 ];
 
-function Sidebar({ abaAtiva, setAbaAtiva, recolhida, setRecolhida }) {
+function Sidebar({ abaAtiva, setAbaAtiva, recolhida, setRecolhida, userRole, hasUnit }) {
   const itens = [
     { key: 'inicio', label: 'Início', icone: ICONES.inicio },
     { key: 'servicos', label: 'Serviços', icone: ICONES.servicos },
     { key: 'agendar', label: 'Agendar', icone: ICONES.agendar },
     { key: 'perfil', label: 'Perfil', icone: ICONES.perfil },
     { key: 'grafico', label: 'Gráfico de Absenteísmo', icone: ICONES.grafico, emBreve: true },
-  ];
+  ].filter((item) => userRole !== 'gestor' || (item.key !== 'servicos' && (hasUnit || item.key !== 'agendar')));
 
   return (
     <aside className={`sidebar ${recolhida ? 'recolhida' : ''}`}>
       <div className="sidebar-logo">
-        <span className="logo-icon">❀</span>
+        <img className="brand-logo-img sidebar-logo-img" src="/sig-bosta.jpg" alt="" />
         {!recolhida && <span className="sidebar-logo-texto">SIG-MAMO</span>}
       </div>
       <nav className="sidebar-nav">
@@ -108,7 +107,11 @@ function PopupAgendar({ onClose, onEscolha }) {
 }
 
 function PaginaInicio({ userRole, onAcao }) {
-  const itens = ITENS_INICIO_ADMIN;
+  const itens = userRole === 'admin' ? ITENS_INICIO_ADMIN : [
+    { id: 'cadastrar-paciente', label: 'Cadastrar Paciente', icone: '🧾' },
+    { id: 'criar-agendamento', label: 'Criar Agendamento', icone: '📋' },
+    { id: 'fila-atual', label: 'Ver Fila Atual', icone: '📊' },
+  ];
   return (
     <div className="pagina-inicio">
       <p className="pagina-subtitulo">Principais ações</p>
@@ -129,14 +132,12 @@ function PaginaServicos({ onAcao }) {
 
   const todos = [
     { id: 'cadastrar-unidade', label: 'Cadastrar Unidade', icone: '🏥' },
-    { id: 'login-unidade', label: 'Login de Unidade', icone: '🔑' },
     { id: 'cadastrar-profissional', label: 'Cadastrar Profissional', icone: '🩺' },
     { id: 'cadastrar-paciente', label: 'Cadastrar Paciente', icone: '🧾' },
     { id: 'atualizar-paciente', label: 'Atualizar Paciente', icone: '✏️' },
     { id: 'criar-agendamento', label: 'Criar Agendamento', icone: '📋' },
     { id: 'obter-agendamento', label: 'Obter Agendamento', icone: '🔍' },
     { id: 'atualizar-status', label: 'Atualizar Status do Agendamento', icone: '🔄' },
-    { id: 'popular-fila', label: 'Popular Fila Falsa', icone: '🗂️' },
     { id: 'fila-atual', label: 'Ver Fila Atual', icone: '📊' },
     { id: 'assistente', label: 'Conversar com Assistente', icone: '🤖' },
   ];
@@ -213,7 +214,7 @@ const TITULOS = {
 };
 
 function App() {
-  const [tela, setTela] = useState('login_profissional');
+  const [tela, setTela] = useState(() => localStorage.getItem('token') && localStorage.getItem('userRole') ? 'painel' : 'login_profissional');
   const [abaAtiva, setAbaAtiva] = useState('inicio');
   const [erro, setErro] = useState('');
   const [userRole, setUserRole] = useState(() => localStorage.getItem('userRole') || null);
@@ -252,7 +253,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.clear();
+    ['token', 'userRole', 'profissional', 'unidade'].forEach((chave) => localStorage.removeItem(chave));
     setUserRole(null);
     setProfissionalLogado(null);
     setUnidadeLogada(null);
@@ -269,7 +270,6 @@ function App() {
 
   const handleAcao = (id) => {
     setAcaoSolicitada(id);
-    setAbaAtiva('servicos');
   };
 
   const handleEscolhaAgendar = (id) => {
@@ -283,7 +283,7 @@ function App() {
         <div className="login-split-container">
           <div className="login-image-bg"></div>
           <div className="login-sidebar">
-            <div className="login-logo"><span className="logo-icon">❀</span> SIG-MAMO</div>
+            <div className="login-logo"><img className="brand-logo-img login-logo-img" src="/sig-bosta.jpg" alt="" /> SIG-MAMO</div>
             {erro && <p className="erro">{erro}</p>}
             <form onSubmit={handleLoginProfissional} className="login-form">
               <div className="input-group">
@@ -302,18 +302,19 @@ function App() {
 
       {tela === 'painel' && (
         <div className="painel-layout">
-          <Sidebar abaAtiva={abaAtiva} setAbaAtiva={handleAbaAtiva} recolhida={recolhida} setRecolhida={setRecolhida} />
+          <Sidebar abaAtiva={abaAtiva} setAbaAtiva={handleAbaAtiva} recolhida={recolhida} setRecolhida={setRecolhida} userRole={userRole} hasUnit={Boolean(unidadeLogada?.id ?? profissionalLogado?.unidade_id)} />
           <div className="painel-corpo">
             <Topbar titulo={TITULOS[abaAtiva] || 'Painel'} profissional={profissionalLogado} onLogout={handleLogout} />
             <main className="painel-main">
               {abaAtiva === 'inicio' && (
                 userRole === 'gestor' 
-                  ? <PainelGestor unidadeLogada={unidadeLogada} />
+                  ? <PainelGestor unidadeLogada={unidadeLogada} unidadeId={profissionalLogado?.unidade_id} />
                   : <PaginaInicio userRole={userRole} onAcao={handleAcao} />
               )}
               
-              {abaAtiva === 'servicos' && (
-                userRole === 'admin' 
+              {abaAtiva === 'servicos' && (userRole === 'gestor'
+                ? <PainelGestor unidadeLogada={unidadeLogada} unidadeId={profissionalLogado?.unidade_id} acaoInicial={acaoSolicitada} onAcaoConsumida={() => setAcaoSolicitada(null)} />
+                : userRole === 'admin'
                   ? <PainelAdmin unidadeLogada={unidadeLogada} acaoInicial={acaoSolicitada} onAcaoConsumida={() => setAcaoSolicitada(null)} />
                   : <PaginaServicos onAcao={handleAcao} />
               )}
@@ -323,6 +324,12 @@ function App() {
               )}
             </main>
           </div>
+          {acaoSolicitada && userRole === 'gestor' && (
+            <PainelGestor unidadeLogada={unidadeLogada} unidadeId={profissionalLogado?.unidade_id} acaoInicial={acaoSolicitada} somenteModal onAcaoConsumida={() => setAcaoSolicitada(null)} />
+          )}
+          {acaoSolicitada && userRole === 'admin' && (
+            <PainelAdmin unidadeLogada={unidadeLogada} acaoInicial={acaoSolicitada} somenteModal onAcaoConsumida={() => setAcaoSolicitada(null)} />
+          )}
           {popupAgendar && (
             <PopupAgendar onClose={() => setPopupAgendar(false)} onEscolha={handleEscolhaAgendar} />
           )}

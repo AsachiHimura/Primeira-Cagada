@@ -1,32 +1,23 @@
-import sqlite3
 import bcrypt
-import os
-from dotenv import load_dotenv
+import psycopg2
+from config import settings
 
-load_dotenv()
+if not settings.ADMIN_SENHA:
+    raise SystemExit("Defina ADMIN_SENHA no .env antes de criar o administrador.")
 
-senha = os.getenv("ADMIN_SENHA", "admin123")
-matricula = os.getenv("ADMIN_MATRICULA", "185838")
-nome = os.getenv("ADMIN_NOME", "Administrador")
+senha = settings.ADMIN_SENHA
+matricula = settings.ADMIN_MATRICULA
+nome = settings.ADMIN_NOME
 
 hash_senha = bcrypt.hashpw(senha.encode(), bcrypt.gensalt()).decode()
 
-conn = sqlite3.connect("cofrinho.db")
-conn.execute("""
-CREATE TABLE IF NOT EXISTS profissionais (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    unidade_id INTEGER,
-    nome TEXT,
-    cargo TEXT,
-    permissao TEXT,
-    matricula TEXT UNIQUE,
-    senha TEXT
-)
-""")
-conn.execute(
-    "INSERT OR IGNORE INTO profissionais (unidade_id, nome, cargo, permissao, matricula, senha) VALUES (?, ?, ?, ?, ?, ?)",
-    (0, nome, "ceo", "admin", matricula, hash_senha)
-)
-conn.commit()
-conn.close()
-print(f"Admin criado. Matrícula: {matricula}")
+with psycopg2.connect(settings.DATABASE_URL) as conn:
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """INSERT INTO profissionais (unidade_id, nome, cargo, permissao, matricula, senha)
+               VALUES (NULL, %s, %s, %s, %s, %s)
+               ON CONFLICT (matricula) DO NOTHING RETURNING id""",
+            (nome, "ceo", "admin", matricula, hash_senha)
+        )
+        criado = cursor.fetchone() is not None
+print(f"Admin {'criado' if criado else 'já existia'}. Matrícula: {matricula}")

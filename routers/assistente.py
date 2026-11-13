@@ -1,18 +1,20 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-import sqlite3
+from psycopg2.extensions import connection
 from database import obter_conexao
+from auth import PermissaoRequerida, validar_acesso_unidade
 
 router = APIRouter(prefix="/assistente", tags=["Assistente Virtual (Sigma)"])
 
 class MensagemUsuario(BaseModel):
     cpf: Optional[str] = ""
     texto: str
+    agendamento_id: Optional[int] = None
 
-def buscar_paciente_por_cpf(cpf: str, db: sqlite3.Connection):
+def buscar_paciente_por_cpf(cpf: str, db: connection):
     cursor = db.cursor()
-    cursor.execute("SELECT id, nome, idade, telefone, endereco, cep FROM pacientes WHERE cpf = %s", (cpf,))
+    cursor.execute("SELECT id, unidade_id, nome, idade, telefone, endereco, cep FROM pacientes WHERE cpf = %s", (cpf,))
     return cursor.fetchone()
 
 def verificar_cadastro_incompleto(paciente):
@@ -37,19 +39,23 @@ def verificar_cadastro_incompleto(paciente):
         
     return dados_faltantes
 
-def listar_consultas_paciente(paciente_id: int, db: sqlite3.Connection):
+def listar_consultas_paciente(paciente_id: int, db: connection):
     cursor = db.cursor()
     cursor.execute("SELECT id, data_hora, especialidade, status FROM agendamentos WHERE paciente_id = %s", (paciente_id,))
     return cursor.fetchall()
 
-def cancelar_agendamento(agendamento_id: int, db: sqlite3.Connection):
+def cancelar_agendamento(agendamento_id: int, db: connection):
     cursor = db.cursor()
     cursor.execute("UPDATE agendamentos SET status = 'Cancelado' WHERE id = %s", (agendamento_id,))
     db.commit()
     return cursor.rowcount > 0
 
 @router.post("")
-def conversar_com_assistente(dados: MensagemUsuario, db: sqlite3.Connection = Depends(obter_conexao)):
+def conversar_com_assistente(
+    dados: MensagemUsuario,
+    db: connection = Depends(obter_conexao),
+    usuario=Depends(PermissaoRequerida(["admin", "gestor", "clinico", "recepcao"])),
+):
     texto = dados.texto.lower().strip()
     cpf_limpo = dados.cpf.strip() if dados.cpf else ""
 
@@ -62,6 +68,7 @@ def conversar_com_assistente(dados: MensagemUsuario, db: sqlite3.Connection = De
     
     if not paciente:
         return {"resposta_bot": "⚠️ CPF não localizado no sistema. Por favor, verifique se digitou corretamente ou procure a receção do posto."}
+    validar_acesso_unidade(usuario, paciente["unidade_id"])
 
     dados_faltantes = verificar_cadastro_incompleto(paciente)
     if dados_faltantes:
@@ -88,8 +95,12 @@ def conversar_com_assistente(dados: MensagemUsuario, db: sqlite3.Connection = De
         if not consultas_ativas:
             return {"resposta_bot": f"O paciente {paciente['nome']} não possui consultas ativas para cancelar no sistema."}
         
-        id_cancelar = consultas_ativas[0]["id"]
-        sucesso = cancelar_agendamento(id_cancelar, db)
+        if not dados.agendamento_id:
+            opcoes = "\n".join(f"- #{c['id']}: {c['especialidade']} em {c['data_hora']}" for c in consultas_ativas)
+            return {"resposta_bot": f"Informe o ID exato do agendamento que deseja cancelar:\n{opcoes}"}
+        if not any(c["id"] == dados.agendamento_id for c in consultas_ativas):
+            raise HTTPException(status_code=404, detail="Agendamento ativo não pertence a este paciente.")
+        sucesso = cancelar_agendamento(dados.agendamento_id, db)
         
         if sucesso:
             return {"resposta_bot": f"✅ Sucesso! A consulta de {paciente['nome']} foi CANCELADA e a vaga libertada."}

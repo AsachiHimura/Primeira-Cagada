@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-import random
+import secrets
 import string
 from database import obter_conexao
 from auth import PermissaoRequerida, gerar_hash_senha, verificar_senha
@@ -9,11 +9,11 @@ import schemas
 router = APIRouter(prefix="/api/unidades", tags=["Unidades"])
 
 def gerar_senha_aleatoria(tamanho=10):
-    return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(tamanho))
+    return ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(tamanho))
 
 def gerar_cnes(cursor) -> str:
     while True:
-        cnes = f"{random.randint(1000000, 9999999)}"
+        cnes = f"{secrets.randbelow(9000000) + 1000000}"
         cursor.execute("SELECT id FROM unidades WHERE codigo_cnes = %s", (cnes,))
         if not cursor.fetchone():
             return cnes
@@ -48,7 +48,7 @@ def cadastrar_unidade(unidade: schemas.UnidadeCadastro, db = Depends(obter_conex
         db.commit()
         
         # Compatibilidade para obter o ID recém-inserido no PostgreSQL
-        unidade_id = row[0] if row else cursor.lastrowid
+        unidade_id = row["id"]
         
         return {
             "id": unidade_id, 
@@ -70,14 +70,12 @@ def login_unidade(login: schemas.UnidadeLogin, db = Depends(database.obter_conex
     if not row:
         raise HTTPException(status_code=401, detail="Código CNES ou senha incorretos.")
         
-    unidade = {
-        "id": row[0],
-        "nome": row[1],
-        "codigo_cnes": row[2],
-        "senha_login": row[3]
-    }
+    unidade = dict(row)
     
     if not verificar_senha(login.senha_login, unidade['senha_login']):
         raise HTTPException(status_code=401, detail="Código CNES ou senha incorretos.")
         
-    return {"mensagem": "Login efetuado com sucesso!", "unidade": unidade}
+    from auth import criar_token_acesso
+    token = criar_token_acesso({"sub": unidade["codigo_cnes"], "role": "unidade", "unidade_id": unidade["id"]})
+    unidade_publica = {chave: unidade[chave] for chave in ("id", "nome", "codigo_cnes")}
+    return {"mensagem": "Login efetuado com sucesso!", "access_token": token, "unidade": unidade_publica}

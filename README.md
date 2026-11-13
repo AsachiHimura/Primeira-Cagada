@@ -11,6 +11,10 @@ Abaixo, seguem as instruções para execução local do projeto
 
 ## Rodando o projeto localmente:
 
+Na raiz do projeto, crie um arquivo `.env` com `DATABASE_URL` (conexão PostgreSQL/Supabase), `SECRET_KEY` (chave aleatória longa) e, para criar o primeiro administrador com `python seed.py`, `ADMIN_SENHA`. Configure também `ADMIN_MATRICULA` e `ADMIN_NOME` se quiser personalizar esses dados. Não compartilhe nem envie esse arquivo ao Git.
+
+No frontend, crie `sig-mamo-front/.env.local` com `VITE_API_URL=http://127.0.0.1:8000`. Em produção, defina `VITE_API_URL` para a URL da API e `CORS_ORIGINS` no backend para a origem exata do frontend, separando várias origens por vírgula.
+
 Primeiro, abra um terminal a partir de **main.py**:
 ```
 python -m uvicorn main:app --reload
